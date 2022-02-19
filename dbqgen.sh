@@ -59,5 +59,11 @@ for sql in {1..22}; do
     ../qgen -b ../dists.dss -s $SF $QGEND $sql > "$CWD/$OUT_DIR/queries/$sql.sql" || err "Failed to qgen $sql.sql"
 done
 
+cd "../variants" || err "Failed to locate query variants"
+
+for vsql in {8a,12a,13a,14a,15a}; do
+    ../qgen -b ../dists.dss -s $SF $QGEND $vsql > "$CWD/$OUT_DIR/queries/$vsql.sql" || err "Failed to qgen $vsql.sql"
+done
+
 cd "$CWD"
-echo "Done"
+echo "$0: Done"
