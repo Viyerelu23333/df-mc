@@ -4,3 +4,6 @@
 [submodule "arrow-datafusion"]
 	path = arrow-datafusion
 	url = https://github.com/Viyerelu23333/arrow-datafusion
+[submodule "arrow"]
+	path = arrow
+	url = https://github.com/Viyerelu23333/arrow-rs
