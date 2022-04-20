@@ -3,6 +3,7 @@
 CARGO_BIN="."
 OUTPUT_DIR="~/"
 DSS_PATH="./dbqgen/dss_df.ddl"
+DSS_QUERY=
 QUERY_ID=0
 DF_PID=-5
 DUMP_PERIOD=0.1
@@ -58,6 +59,15 @@ run() {
             echo "$dss" > dfpipe
         fi
     done
+
+    [ -n $DSS_QUERY ] && {
+        cat $DSS_QUERY | while read dss; do
+            if [ -n "$dss" ]; then
+                echo "$dss" > dfpipe
+            fi
+        done
+    }
+
     sleep 5
     echo "$0: Databases loaded, start query execution"
     { cat $QUERY; echo "\q"; echo ""; } > dfpipe
@@ -74,8 +84,9 @@ if [ $EUID -ne 0 ]; then
 fi
 
 if [ -z "$4" ]; then
-    echo "Usage: $0 cargo_bin_path dss_path output_path query_path dump_loop_sec"
+    echo "Usage: $0 cargo_bin_path dss_path output_path query_path dump_loop_sec [query_ddl]"
     echo "Example: $0 $HOME/.cargo/bin ./dbqgen/dss_df.ddl ./dbdump ./queries/19.sql 0.1"
+    echo "Example: $0 $HOME/.cargo/bin ./dbqgen/dss_df_mem.ddl ./dbdump ./queries/19.sql 0.1 ./queries/19.ddl"
     exit 1
 fi
 
@@ -86,9 +97,10 @@ DSS_PATH="$2"
 OUTPUT_DIR="$3"
 QUERY="$4"
 QUERY_ID=$(basename $4 .sql)
+DUMP_PERIOD=$5
 
-if [ -n "$5" ]; then
-    DUMP_PERIOD=$5
+if [ -n "$6" ]; then
+    DSS_QUERY="$6"
 fi
 
 stat "$DSS_PATH" > /dev/null || err "$0: DSS not found, $DSS_PATH"

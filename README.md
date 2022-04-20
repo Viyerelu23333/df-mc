@@ -73,11 +73,11 @@ Examples:
 ```bash
 # dump the memory using datafusion-cli in user's cargo path, with `./queries/1.sql`
 # the dumping occurs every 0.01s, and output binaries to `./dbdump`
-sudo ./memdump.sh ~user/.cargo/bin ./dbqgen/dss_df.ddl ./queries ./dbdump 1 0.01
+sudo ./memdump.sh ~user/.cargo/bin ./dbqgen/dss_df.ddl ./dbdump ./queries/1.sql 0.01
 
 # dump the memory using df-cli in user's path, with `./queries/19.sql` and
-# `./queries/19.dss`, the dumping occurs every 1s, and output to `~root`
-sudo ./memdump.sh ~user/.cargo/bin ./queries/1.ddl ~
+# `./queries/19.ddl`, the dumping occurs every 1s, and output to `~root`
+sudo ./memdump.sh ~user/.cargo/bin ./queries/19.ddl ~ ./queries/19.sql
 ```
 
 - Compressing and Benchmarking the Binaries with GZip
