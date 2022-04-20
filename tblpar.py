@@ -97,10 +97,10 @@ def convert_file(file_name : str, target_name : str, schema : tuple) -> tuple:
     return (file_name.split('/')[-1].split('.')[-2], target_name)
 
 
-def convert_ddl(file_name : str, tables : tuple) -> None:
+def convert_ddl(file_name : str, tables : tuple, suffix : str = "") -> None:
     fd = open(file_name, 'w')
     for tbl in tables:
-        fd.write("CREATE EXTERNAL TABLE " + tbl[0] +
+        fd.write("CREATE EXTERNAL TABLE " + tbl[0] + suffix +
                  "\nSTORED AS PARQUET\nLOCATION '" + tbl[1] + "';\n\n")
     fd.close()
 
@@ -116,6 +116,7 @@ def parse_convert(directory : str, outputdir : str) -> None:
             convert_file(directory + "/lineitem.tbl", outputdir + "/lineitem.parquet", LINEITEM))
 
     convert_ddl(outputdir + "/dss_df.ddl", parq)
+    convert_ddl(outputdir + "/dss_df_mem.ddl", parq, "_l")
 
 
 if __name__ == "__main__":

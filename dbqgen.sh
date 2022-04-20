@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 SF=2
 OUT_DIR='./dbqgen'
@@ -7,7 +7,7 @@ CWD=$(pwd)
 QGEND=''
 
 err() {
-    echo >&2 "$1: $2"
+    echo >&2 "$1"
     exit 1
 }
 
