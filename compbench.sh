@@ -1,14 +1,16 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
-SPLIT_SIZE=4096
+BLOCK_SIZE=4096
 SPLIT_PATH=./dbdump
 SPLIT_FILE=
 
 CMPRS=0
 BENCH=0
 RMFILE=1
-LOWER=1
-UPPER=9
+
+GZ_LOWER=1
+GZ_UPPER=9
+
 
 err() {
     echo >&2 "$1"
@@ -18,23 +20,24 @@ err() {
 benchmark() {
     echo "$0: Benchmarking $1"
     hyperfine -w 5 -m 5 --export-csv $SPLIT_PATH/$1_bench.csv          \
-        -P GZIP_CMPLV $LOWER $UPPER -u millisecond                               \
-        "dd if=$SPLIT_PATH/$1 iflag=fullblock bs=$SPLIT_SIZE \
-         | gzip -c -{GZIP_CMPLV} > /dev/null"
+        -P GZIP_CMPLV $GZ_LOWER $GZ_UPPER -u millisecond               \
+        "parallel --pipe-part --recend '' -a $SPLIT_PATH/$1            \
+            --block $BLOCK_SIZE -q                                     \
+                gzip -c -{GZIP_CMPLV} > /dev/null"
 }
 
 compress() {
-    echo "gzipLevel,originalSize,compressedSize" > $SPLIT_PATH/$1_gzip.csv
+    if [ ! -e "$SPLIT_PATH/$1_gzip.csv" ]; then
+        echo "gzipLevel,blockSize,originalSize,compressedSize" > $SPLIT_PATH/$1_gzip.csv
+    fi
 
-    for ((GZIP_CMPLV=$LOWER; GZIP_CMPLV<=$UPPER; GZIP_CMPLV++)); do
-        echo "$0: Compressing $1 with GZIP level $GZIP_CMPLV"
+    for ((GZIP_CMPLV=$GZ_LOWER; GZIP_CMPLV<=$GZ_UPPER; GZIP_CMPLV++)); do
+        echo "$0: Compressing $1 with GZIP level $GZIP_CMPLV, block size $BLOCK_SIZE"
 
-        dd if=$SPLIT_PATH/$1 iflag=fullblock bs=$SPLIT_SIZE            \
-            | gzip -c -$GZIP_CMPLV >> $SPLIT_PATH/$1.$GZIP_CMPLV.gz
-
-        echo -n "$GZIP_CMPLV," >> $SPLIT_PATH/$1_gzip.csv
+        echo -n "$GZIP_CMPLV,$BLOCK_SIZE," >> $SPLIT_PATH/$1_gzip.csv
         echo -n "$(du -b $SPLIT_PATH/$1 | awk '{print $1}')," >> $SPLIT_PATH/$1_gzip.csv
-        echo "$(du -b $SPLIT_PATH/$1.$GZIP_CMPLV.gz | awk '{print $1}')" >> $SPLIT_PATH/$1_gzip.csv
+        parallel --pipe-part --recend '' -a $SPLIT_PATH/$1 --block $BLOCK_SIZE --eta -q \
+            gzip -c -$GZIP_CMPLV | wc -c >> $SPLIT_PATH/$1_gzip.csv
 
         [ $RMFILE -eq 1 ] && rm -f $SPLIT_PATH/$1.$GZIP_CMPLV.gz
     done
@@ -72,7 +75,7 @@ case $1 in
         BENCH=1
         ;;
     *)
-        err "Usage: $0 compress|benchmark|compbench [-p split_path] [-s split_size] [-k] [-r Lower Upper] [filename]"
+        err "Usage: $0 compress|benchmark|compbench [-p split_path] [-s BLOCK_SIZE] [-k] [-r GZ_LOWER GZ_UPPER] [filename]"
         ;;
 esac
 shift
@@ -81,24 +84,20 @@ while [ $# -gt 0 ]; do
     case $1 in
         -p|--path)
             SPLIT_PATH=$2
-            shift
-            shift
+            shift 2
             ;;
         -s|--split-size)
-            SPLIT_SIZE=$2
-            shift
-            shift
+            BLOCK_SIZE=$2
+            shift 2
             ;;
         -k|--keep-gz)
             RMFILE=0
             shift
             ;;
         -r|--range)
-            LOWER=$2
-            UPPER=$3
-            shift
-            shift
-            shift
+            GZ_LOWER=$2
+            GZ_UPPER=$3
+            shift 3
             ;;
         *)
             SPLIT_FILE=$1
@@ -114,6 +113,9 @@ if [ -n "$SPLIT_FILE" ]; then
 fi
 
 hyperfine -V > /dev/null || err "$0: Hyperfine not detected"
+parallel -V > /dev/null || err "$0: GNU/Parallel not detected"
 stat $SPLIT_PATH > /dev/null || err "$0: Cannot access $SPLIT_PATH"
+
+trap exit INT
 
 compbench

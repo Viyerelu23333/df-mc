@@ -1,9 +1,9 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 CARGO_BIN="."
 OUTPUT_DIR="~/"
 DSS_PATH="./dbqgen/dss_df.ddl"
-DSS_QUERY=
+DSS_QUERY=""
 QUERY_ID=0
 DF_PID=-5
 DUMP_PERIOD=0.1
@@ -14,11 +14,13 @@ err() {
 }
 
 cleanup() {
+    echo "$0: Program finished, cleaning up pipe and processes"
     chown -R 1000:1000 $OUTPUT_DIR
     if [ $DF_PID -ge 0 ]; then
         kill -9 $DF_PID
     fi
     rm dfpipe
+    exit
 }
 
 heapdump() {
@@ -45,7 +47,7 @@ heapdump() {
 }
 
 run() {
-    echo "dumpStartAt,dumpStopAt" >> $OUTPUT_DIR/$QUERY_ID.csv
+    echo "dumpStartAt,dumpStopAt" > $OUTPUT_DIR/$QUERY_ID.csv
 
     mkfifo dfpipe || err "$0: Failed to create pipe"
     echo "$0: Pipe created"
@@ -60,13 +62,14 @@ run() {
         fi
     done
 
-    [ -n $DSS_QUERY ] && {
+    if [ -n "$DSS_QUERY" ]; then
+        echo "$0: Piping query ddl"
         cat $DSS_QUERY | while read dss; do
             if [ -n "$dss" ]; then
                 echo "$dss" > dfpipe
             fi
         done
-    }
+    fi
 
     sleep 5
     echo "$0: Databases loaded, start query execution"
@@ -91,6 +94,7 @@ if [ -z "$4" ]; then
 fi
 
 trap cleanup EXIT
+trap exit INT
 
 CARGO_BIN="$1"
 DSS_PATH="$2"
@@ -100,7 +104,9 @@ QUERY_ID=$(basename $4 .sql)
 DUMP_PERIOD=$5
 
 if [ -n "$6" ]; then
+    echo "$0: Found query specific ddl"
     DSS_QUERY="$6"
+    stat "$DSS_QUERY" > /dev/null || err "$0: Query DSS not found, $DSS_QUERY"
 fi
 
 stat "$DSS_PATH" > /dev/null || err "$0: DSS not found, $DSS_PATH"
@@ -108,4 +114,5 @@ stat "$QUERY" > /dev/null || err "$0: SQL file not found"
 stat "$CARGO_BIN/datafusion-cli" > /dev/null || err "$0: Datafusion not found"
 stat "$OUTPUT_DIR" > /dev/null || mkdir $OUTPUT_DIR
 
+echo 3 > /proc/sys/vm/drop_caches
 run

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 SF=2
 OUT_DIR='./dbqgen'
@@ -15,18 +15,15 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         -s|--scale-factor)
             SF=$2
-            shift
-            shift
+            shift 2
             ;;
         -o|--output-dir)
             OUT_DIR=$2
-            shift
-            shift
+            shift 2
             ;;
         -e|--exec-dir)
             EXEC_DIR=$2
-            shift
-            shift
+            shift 2
             ;;
         -qd|--qgen-default)
             QGEND='-d'
