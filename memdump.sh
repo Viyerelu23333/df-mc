@@ -1,7 +1,7 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 CARGO_BIN="."
-OUTPUT_DIR="~/"
+OUTPUT_DIR="$HOME/"
 DSS_PATH="./dbqgen/dss_df.ddl"
 DSS_QUERY=""
 QUERY_ID=0
@@ -15,7 +15,7 @@ err() {
 
 cleanup() {
     echo "$0: Program finished, cleaning up pipe and processes"
-    chown -R 1000:1000 $OUTPUT_DIR
+    chown -R 1000:1000 "$OUTPUT_DIR"
     if [ $DF_PID -ge 0 ]; then
         kill -9 $DF_PID
     fi
@@ -38,16 +38,16 @@ heapdump() {
             0x$start 0x$stop" > /dev/null
     done
 
-    pmap $DF_PID > $OUTPUT_DIR/$QUERY_ID.$dumpTime.map
+    pmap $DF_PID > "$OUTPUT_DIR/$QUERY_ID.$dumpTime.map"
 
     kill -CONT $DF_PID
     resumeTime=$(date +%s%N | cut -b1-13)
     echo "$0: Process resumed at $resumeTime" &
-    echo "$dumpTime,$resumeTime" >> $OUTPUT_DIR/$QUERY_ID.csv &
+    echo "$dumpTime,$resumeTime" >> "$OUTPUT_DIR/$QUERY_ID.csv" &
 }
 
 run() {
-    echo "dumpStartAt,dumpStopAt" > $OUTPUT_DIR/$QUERY_ID.csv
+    echo "dumpStartAt,dumpStopAt" > "$OUTPUT_DIR/$QUERY_ID.csv"
 
     mkfifo dfpipe || err "$0: Failed to create pipe"
     echo "$0: Pipe created"
@@ -64,7 +64,7 @@ run() {
 
     if [ -n "$DSS_QUERY" ]; then
         echo "$0: Piping query ddl"
-        cat $DSS_QUERY | while read dss; do
+        cat "$DSS_QUERY" | while read dss; do
             if [ -n "$dss" ]; then
                 echo "$dss" > dfpipe
             fi
@@ -73,7 +73,7 @@ run() {
 
     sleep 5
     echo "$0: Databases loaded, start query execution"
-    { cat $QUERY; echo "\q"; echo ""; } > dfpipe
+    { cat "$QUERY"; echo "\q"; echo ""; } > dfpipe
 
     while true; do
         sleep $DUMP_PERIOD
@@ -100,7 +100,7 @@ CARGO_BIN="$1"
 DSS_PATH="$2"
 OUTPUT_DIR="$3"
 QUERY="$4"
-QUERY_ID=$(basename $4 .sql)
+QUERY_ID=$(basename "$4" .sql)
 DUMP_PERIOD=$5
 
 if [ -n "$6" ]; then
@@ -112,7 +112,7 @@ fi
 stat "$DSS_PATH" > /dev/null || err "$0: DSS not found, $DSS_PATH"
 stat "$QUERY" > /dev/null || err "$0: SQL file not found"
 stat "$CARGO_BIN/datafusion-cli" > /dev/null || err "$0: Datafusion not found"
-stat "$OUTPUT_DIR" > /dev/null || mkdir $OUTPUT_DIR
+stat "$OUTPUT_DIR" > /dev/null || mkdir "$OUTPUT_DIR"
 
 echo 3 > /proc/sys/vm/drop_caches
 run

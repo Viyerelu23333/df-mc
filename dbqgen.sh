@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 SF=2
 OUT_DIR='./dbqgen'
@@ -39,13 +39,13 @@ done
 echo "$0: Switching to dbgen executable directory"
 cd "$EXEC_DIR" || err "Failed to locate executable directory"
 
-make -j$(nproc) || err "Failed to compile dbgen"
+make -j"$(nproc)" || err "Failed to compile dbgen"
 
-./dbgen -vf -s $SF || err "dbgen failed"
+./dbgen -vf -s "$SF" || err "dbgen failed"
 
 echo "$0: dbgen OK, moving databases"
 mkdir --parents "$CWD/$OUT_DIR"
-mv -f *.tbl $_ || err "Move tables failed"
+mv -f -- *.tbl "$_" || err "Move tables failed"
 
 echo "$0: Move OK, starting qgen"
 cd "queries" || err "Failed to locate queries directory"
@@ -53,13 +53,13 @@ cd "queries" || err "Failed to locate queries directory"
 mkdir --parents "$CWD/$OUT_DIR/queries" || err "Failed to make folder"
 
 for sql in {1..22}; do
-    ../qgen -b ../dists.dss -s $SF $QGEND $sql > "$CWD/$OUT_DIR/queries/$sql.sql" || err "Failed to qgen $sql.sql"
+    ../qgen -b ../dists.dss -s "$SF" $QGEND "$sql" > "$CWD/$OUT_DIR/queries/$sql.sql" || err "Failed to qgen $sql.sql"
 done
 
 cd "../variants" || err "Failed to locate query variants"
 
 for vsql in {8a,12a,13a,14a,15a}; do
-    ../qgen -b ../dists.dss -s $SF $QGEND $vsql > "$CWD/$OUT_DIR/queries/$vsql.sql" || err "Failed to qgen $vsql.sql"
+    ../qgen -b ../dists.dss -s "$SF" $QGEND "$vsql" > "$CWD/$OUT_DIR/queries/$vsql.sql" || err "Failed to qgen $vsql.sql"
 done
 
 cd "$CWD"

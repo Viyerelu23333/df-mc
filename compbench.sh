@@ -1,11 +1,8 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 BLOCK_SIZE=4096
 SPLIT_PATH=./dbdump
 SPLIT_FILE=
-
-CMPRS=0
-BENCH=0
 
 GZ_LOWER=1
 GZ_UPPER=9
@@ -18,24 +15,21 @@ err() {
 
 compress() {
     if [ ! -e "$SPLIT_PATH/$1_gzip.csv" ]; then
-        echo "gzipLevel,blockSize,originalSize,compressedSize" > $SPLIT_PATH/$1_gzip.csv
+        echo "gzipLevel,blockSize,originalSize,compressedSize,totalBlock,rs0,rs10,rs20,rs30,rs40,rs50,rs60,rs70,rs80,rs90,rs100" > "$SPLIT_PATH/$1_gzip.csv"
     fi
 
-    for ((GZIP_CMPLV=$GZ_LOWER; GZIP_CMPLV<=$GZ_UPPER; GZIP_CMPLV++)); do
+    for ((GZIP_CMPLV=GZ_LOWER; GZIP_CMPLV<=GZ_UPPER; GZIP_CMPLV++)); do
         echo "$0: Compressing $1 with GZIP level $GZIP_CMPLV, block size $BLOCK_SIZE"
-
-        echo -n "$GZIP_CMPLV,$BLOCK_SIZE," >> $SPLIT_PATH/$1_gzip.csv
-        echo -n "$(du -b $SPLIT_PATH/$1 | awk '{print $1}')," >> $SPLIT_PATH/$1_gzip.csv
-        compressor $GZIP_CMPLV $BLOCK_SIZE $SPLIT_PATH/$1 >> $SPLIT_PATH/$1_gzip.csv
+        compressor "$GZIP_CMPLV" "$BLOCK_SIZE" "$SPLIT_PATH/$1" >> "$SPLIT_PATH/$1_gzip.csv"
     done
 }
 
 compbench() {
     if [ -n "$SPLIT_FILE" ]; then
-        compress $SPLIT_FILE
+        compress "$SPLIT_FILE"
     else
-        for file in $SPLIT_PATH/*.bin; do
-            compress $(basename $file)
+        for file in "$SPLIT_PATH"/*.bin; do
+            compress "$(basename "$file")"
         done
     fi
 }
@@ -68,12 +62,12 @@ done
 
 if [ -n "$SPLIT_FILE" ]; then
     echo "$0: File specified, use single file mode"
-    stat $SPLIT_PATH/$SPLIT_FILE > /dev/null\
+    stat "$SPLIT_PATH/$SPLIT_FILE" > /dev/null\
         || err "$0: Cannot access $SPLIT_PATH/$SPLIT_FILE"
 fi
 
-stat compressor > /dev/null || err "$0: Compressor not detected, did you run `cargo install`?"
-stat $SPLIT_PATH > /dev/null || err "$0: Cannot access $SPLIT_PATH"
+stat compressor > /dev/null || err "$0: Compressor not detected, did you run 'cargo install'?"
+stat "$SPLIT_PATH" > /dev/null || err "$0: Cannot access $SPLIT_PATH"
 
 trap exit INT
 

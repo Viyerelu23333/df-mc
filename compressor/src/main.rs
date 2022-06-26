@@ -44,6 +44,7 @@ fn main() {
     let mut total_bytes: usize = 0;
     let mut read_counter: usize = 1;
     let mut avg_time: u128 = 0;
+    let mut blk_ratio = [0usize; 11];
 
     let progress = ProgressBar::new(total_blocks as u64);
     progress.set_style(ProgressStyle::default_bar()
@@ -65,6 +66,10 @@ fn main() {
         avg_time += now.elapsed().as_nanos();
         total_bytes += compressed.len();
 
+        // record block-wise stats
+        let current_ratio = (((compressed.len() as f32 / byteread as f32) * 100.0 / 10.0).floor() as usize).min(10);
+        blk_ratio[current_ratio] += 1;
+
         progress.inc(1);
         read_counter += 1;
 
@@ -75,5 +80,15 @@ fn main() {
     eprintln!("Total blocks: {}, Compressed size: {}, Average time: {:.3}ns",
               total_blocks, HumanBytes(total_bytes as u64),
               avg_time as f64 / read_counter as f64);
-    println!("{}", total_bytes);
+
+    // prepare for print
+    let mut ret = Vec::with_capacity(16);
+    ret.push(cmplv as usize);
+    ret.push(blksz);
+    ret.push(fbuf.into_inner().metadata().unwrap().len().try_into().unwrap());
+    ret.push(total_bytes);
+    ret.push(total_blocks);
+    ret.extend_from_slice(&blk_ratio);
+
+    println!("{}", ret.iter().map(|r| r.to_string() + ",").collect::<String>().strip_suffix(",").unwrap());
 }

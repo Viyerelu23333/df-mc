@@ -16,5 +16,5 @@ dbdump/**
 *.gz
 
 ## Rust Compilation
-*/target/**
+**/target/**
 *.lock
